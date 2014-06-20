@@ -48,7 +48,8 @@ extract_feature_labels <- function(labels)
 }
 
 # Function to read in a data set (test or training) along with the necessary
-# 
+# supporting files for buidling a data frame for return
+#
 get_data_set <- function(training, 
                          subjects, 
                          activities, 
@@ -76,6 +77,10 @@ get_data_set <- function(training,
     data
 }
 
+# This function builds an sql query using the array of column names as input.
+# Used in qierying the combined test/train data set to subselct the output
+# into the format required for the second data set.
+#
 query <- function(column_names)
 {
     q <- paste("select ", column_names[1], ",", column_names[2], sep="")
@@ -91,40 +96,50 @@ query <- function(column_names)
     q
 }
 
+# Load and and build supporting data structures for formatting the output
+# file as described in the project description.
 activity_labels <- get_activity_labels("UCI HAR Dataset/activity_labels.txt")
 feature_labels <- get_feature_labels("UCI HAR Dataset/features.txt")
 columns_to_extract <- extract_feature_labels(feature_labels)
 columns_to_extract <- columns_to_extract + 2
 columns_to_extract <- c(1, 2, columns_to_extract)
 
+# Load in the training set with all columns
 training_set <- get_data_set("UCI HAR Dataset/train/X_train.txt",
                              "UCI HAR Dataset/train/subject_train.txt",
                              "UCI HAR Dataset/train/y_train.txt",
                              activity_labels,
                              feature_labels)
 
+# Extract the required set of columns from the complete training set
 training_set <- training_set[, columns_to_extract]
 
+# Load in the test set with all columns
 test_set <- get_data_set("UCI HAR Dataset/test/X_test.txt",
                              "UCI HAR Dataset/test/subject_test.txt",
                              "UCI HAR Dataset/test/y_test.txt",
                              activity_labels,
                              feature_labels)
 
+# Extract the required set of columns from the complete test set
 test_set <- test_set[, columns_to_extract]
 
+# Combine the training and test set into a complete data set
 complete_data_set <- rbind(training_set, test_set)
 
+# Save the complete data set as a comma separated file
 write.table(complete_data_set,
             file="UCI HAR Dataset/train_test_mean.txt",
-            sep=" ",
+            sep=",",
             row.names=FALSE,
             col.names=TRUE)
 
+# Create the sql query and extract the second data set
 average_by_subject_activity <- sqldf(query(colnames(complete_data_set)))
 
+# Save the second data set as a comma separated file
 write.table(average_by_subject_activity,
             file="UCI HAR Dataset/average_by_subject_activity.txt",
-            sep=" ",
+            sep=",",
             row.names=FALSE,
             col.names=TRUE)
